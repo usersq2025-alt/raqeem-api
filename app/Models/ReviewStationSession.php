@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ReviewStationSession extends Model
 {
+    const UPDATED_AT = null;
+
     protected $table = 'review_station_sessions';
 
     protected $fillable = [

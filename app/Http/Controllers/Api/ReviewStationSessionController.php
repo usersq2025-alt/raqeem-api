@@ -11,7 +11,12 @@ class ReviewStationSessionController extends Controller
     // GET /api/review-station-sessions
     public function index(Request $request)
     {
-        $query = ReviewStationSession::query();
+        $this->authorize('viewAny', ReviewStationSession::class);
+
+        $query = ReviewStationSession::whereHas(
+            'student',
+            fn ($q) => $q->where('parent_id', $request->user()->id)
+        );
 
         // دعم بسيط للـ pagination: /api/review-station-sessions?per_page=20
         $perPage = $request->integer('per_page', 20);
@@ -22,6 +27,8 @@ class ReviewStationSessionController extends Controller
     // GET /api/review-station-sessions/{id}
     public function show(ReviewStationSession $reviewStationSession)
     {
+        $this->authorize('view', $reviewStationSession);
+
         return response()->json($reviewStationSession);
     }
 
@@ -37,6 +44,8 @@ class ReviewStationSessionController extends Controller
             'completed_at' => 'sometimes',
         ]);
 
+        $this->authorize('create', [ReviewStationSession::class, $validated['student_id'] ?? null]);
+
         $reviewStationSession = ReviewStationSession::create($validated);
 
         return response()->json($reviewStationSession, 201);
@@ -45,6 +54,8 @@ class ReviewStationSessionController extends Controller
     // PUT/PATCH /api/review-station-sessions/{id}
     public function update(Request $request, ReviewStationSession $reviewStationSession)
     {
+        $this->authorize('update', $reviewStationSession);
+
         $validated = $request->validate([
             'student_id' => 'sometimes',
             'unit_id' => 'sometimes',
@@ -62,6 +73,8 @@ class ReviewStationSessionController extends Controller
     // DELETE /api/review-station-sessions/{id}
     public function destroy(ReviewStationSession $reviewStationSession)
     {
+        $this->authorize('delete', $reviewStationSession);
+
         $reviewStationSession->delete();
 
         return response()->json(['message' => 'تم الحذف بنجاح']);

@@ -34,12 +34,14 @@ use App\Http\Controllers\Api\ExcelImportController;
 use App\Http\Controllers\Api\ExcelImportRowController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminAuthController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+// مسارات ولي الأمر/الطالب — auth:parent (guard مستقل، provider مقيَّد بـ ParentUser فقط)
+Route::middleware('auth:parent')->group(function () {
     Route::apiResource('parents', ParentUserController::class);
     Route::apiResource('otp-codes', OtpCodeController::class);
     Route::apiResource('grades', GradeController::class);
@@ -50,8 +52,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('units', UnitController::class);
     Route::apiResource('lessons', LessonController::class);
     Route::apiResource('skills', SkillController::class);
-    Route::apiResource('game-types', GameTypeController::class);
-    Route::apiResource('questions', QuestionController::class);
     Route::apiResource('games', GameController::class);
     Route::apiResource('game-questions', GameQuestionController::class);
     Route::apiResource('student-lesson-attempts', StudentLessonAttemptController::class);
@@ -67,9 +67,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('student-purchases', StudentPurchaseController::class);
     Route::apiResource('unit-completion-rewards', UnitCompletionRewardController::class);
     Route::apiResource('student-gifts-log', StudentGiftLogController::class);
-    Route::apiResource('admin-roles', AdminRoleController::class);
-    Route::apiResource('admin-users', AdminUserController::class);
-    Route::apiResource('excel-imports', ExcelImportController::class);
-    Route::apiResource('excel-import-rows', ExcelImportRowController::class);
-    Route::apiResource('settings', SettingController::class);
+});
+
+// مسارات الإدارة — guard مستقل تمامًا (admin)، توكن ولي الأمر لا يعمل هنا إطلاقًا
+Route::prefix('admin')->group(function () {
+    // SEC-05-admin: نفس منطق حماية OTP من brute-force، مطبَّق هنا على تسجيل دخول الإدارة
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
+
+    Route::middleware('auth:admin')->group(function () {
+        Route::apiResource('admin-roles', AdminRoleController::class);
+        Route::apiResource('admin-users', AdminUserController::class);
+        Route::apiResource('excel-imports', ExcelImportController::class);
+        Route::apiResource('excel-import-rows', ExcelImportRowController::class);
+        Route::apiResource('settings', SettingController::class);
+        Route::apiResource('game-types', GameTypeController::class);
+        Route::apiResource('questions', QuestionController::class);
+    });
 });

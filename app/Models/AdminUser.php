@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
 
 class AdminUser extends Model
 {
+    use HasApiTokens;
+
+    const UPDATED_AT = null;
+
     protected $table = 'admin_users';
 
     protected $fillable = [
@@ -21,6 +26,10 @@ class AdminUser extends Model
     protected $casts = [
         'last_login_at' => 'datetime',
         'invited_at' => 'datetime',
+    ];
+
+    protected $hidden = [
+        'password_hash',
     ];
 
     public function role()

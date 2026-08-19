@@ -11,7 +11,12 @@ class StudentLessonAttemptController extends Controller
     // GET /api/student-lesson-attempts
     public function index(Request $request)
     {
-        $query = StudentLessonAttempt::query();
+        $this->authorize('viewAny', StudentLessonAttempt::class);
+
+        $query = StudentLessonAttempt::whereHas(
+            'student',
+            fn ($q) => $q->where('parent_id', $request->user()->id)
+        );
 
         // دعم بسيط للـ pagination: /api/student-lesson-attempts?per_page=20
         $perPage = $request->integer('per_page', 20);
@@ -22,6 +27,8 @@ class StudentLessonAttemptController extends Controller
     // GET /api/student-lesson-attempts/{id}
     public function show(StudentLessonAttempt $studentLessonAttempt)
     {
+        $this->authorize('view', $studentLessonAttempt);
+
         return response()->json($studentLessonAttempt);
     }
 
@@ -44,6 +51,8 @@ class StudentLessonAttemptController extends Controller
             'completed_at' => 'sometimes',
         ]);
 
+        $this->authorize('create', [StudentLessonAttempt::class, $validated['student_id'] ?? null]);
+
         $studentLessonAttempt = StudentLessonAttempt::create($validated);
 
         return response()->json($studentLessonAttempt, 201);
@@ -52,6 +61,8 @@ class StudentLessonAttemptController extends Controller
     // PUT/PATCH /api/student-lesson-attempts/{id}
     public function update(Request $request, StudentLessonAttempt $studentLessonAttempt)
     {
+        $this->authorize('update', $studentLessonAttempt);
+
         $validated = $request->validate([
             'student_id' => 'sometimes',
             'lesson_id' => 'sometimes',
@@ -76,6 +87,8 @@ class StudentLessonAttemptController extends Controller
     // DELETE /api/student-lesson-attempts/{id}
     public function destroy(StudentLessonAttempt $studentLessonAttempt)
     {
+        $this->authorize('delete', $studentLessonAttempt);
+
         $studentLessonAttempt->delete();
 
         return response()->json(['message' => 'تم الحذف بنجاح']);

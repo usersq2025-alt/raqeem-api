@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Question;
 use Illuminate\Http\Request;
 
+// TODO: هذا الـ Controller أصبح حصريًا تحت /api/admin/questions (يعرض payload/explanation كاملة).
+// لاحقًا (خارج نطاق هذه المرحلة) يلزم إنشاء نسخة منفصلة لواجهة الطالب لا تُظهر
+// الإجابة الصحيحة ضمن payload قبل انتهاء المحاولة — انظر SEC-02 بتقرير التدقيق الأصلي.
 class QuestionController extends Controller
 {
     // GET /api/questions

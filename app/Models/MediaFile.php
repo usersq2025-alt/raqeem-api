@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class MediaFile extends Model
 {
+    const UPDATED_AT = null;
+
     protected $table = 'media_files';
 
     protected $fillable = [

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Skill extends Model
 {
+    const UPDATED_AT = null;
+
     protected $table = 'skills';
 
     protected $fillable = [

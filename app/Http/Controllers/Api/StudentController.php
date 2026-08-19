@@ -11,7 +11,9 @@ class StudentController extends Controller
     // GET /api/students
     public function index(Request $request)
     {
-        $query = Student::query();
+        $this->authorize('viewAny', Student::class);
+
+        $query = Student::where('parent_id', $request->user()->id);
 
         // دعم بسيط للـ pagination: /api/students?per_page=20
         $perPage = $request->integer('per_page', 20);
@@ -22,15 +24,18 @@ class StudentController extends Controller
     // GET /api/students/{id}
     public function show(Student $student)
     {
+        $this->authorize('view', $student);
+
         return response()->json($student);
     }
 
     // POST /api/students
     public function store(Request $request)
     {
+        $this->authorize('create', Student::class);
+
         $validated = $request->validate([
             'public_id' => 'sometimes',
-            'parent_id' => 'sometimes',
             'full_name' => 'sometimes',
             'birth_date' => 'sometimes',
             'grade_id' => 'sometimes',
@@ -42,6 +47,10 @@ class StudentController extends Controller
             'last_activity_date' => 'sometimes',
             'status' => 'sometimes',
         ]);
+
+        // parent_id يُفرض دائمًا من المستخدم المصادَق، لا يُقرأ من الطلب أبدًا
+        // (يمنع إلحاق طفل جديد بحساب ولي أمر آخر عبر تمرير parent_id مزوَّر)
+        $validated['parent_id'] = $request->user()->id;
 
         $student = Student::create($validated);
 
@@ -51,9 +60,10 @@ class StudentController extends Controller
     // PUT/PATCH /api/students/{id}
     public function update(Request $request, Student $student)
     {
+        $this->authorize('update', $student);
+
         $validated = $request->validate([
             'public_id' => 'sometimes',
-            'parent_id' => 'sometimes',
             'full_name' => 'sometimes',
             'birth_date' => 'sometimes',
             'grade_id' => 'sometimes',
@@ -66,6 +76,7 @@ class StudentController extends Controller
             'status' => 'sometimes',
         ]);
 
+        // parent_id غير قابل للتعديل عبر هذا المسار أبدًا (يمنع "نقل" الطفل لحساب آخر)
         $student->update($validated);
 
         return response()->json($student);
@@ -74,6 +85,8 @@ class StudentController extends Controller
     // DELETE /api/students/{id}
     public function destroy(Student $student)
     {
+        $this->authorize('delete', $student);
+
         $student->delete();
 
         return response()->json(['message' => 'تم الحذف بنجاح']);

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    const CREATED_AT = null;
+
     protected $table = 'settings';
 
     protected $fillable = [

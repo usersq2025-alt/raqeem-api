@@ -11,9 +11,11 @@ class ParentUserController extends Controller
     // GET /api/parents
     public function index(Request $request)
     {
-        $query = ParentUser::query();
+        $this->authorize('viewAny', ParentUser::class);
 
-        // دعم بسيط للـ pagination: /api/parents?per_page=20
+        // كل ولي أمر يرى بياناته الشخصية فقط، لا قائمة كل أولياء الأمور
+        $query = ParentUser::where('id', $request->user()->id);
+
         $perPage = $request->integer('per_page', 20);
 
         return response()->json($query->paginate($perPage));
@@ -22,12 +24,17 @@ class ParentUserController extends Controller
     // GET /api/parents/{id}
     public function show(ParentUser $parentUser)
     {
+        $this->authorize('view', $parentUser);
+
         return response()->json($parentUser);
     }
 
     // POST /api/parents
     public function store(Request $request)
     {
+        // إنشاء حساب ولي أمر جديد يتم فقط عبر POST /register بدون توكن (انظر ParentUserPolicy::create)
+        $this->authorize('create', ParentUser::class);
+
         $validated = $request->validate([
             'public_id' => 'sometimes',
             'full_name' => 'sometimes',
@@ -47,6 +54,8 @@ class ParentUserController extends Controller
     // PUT/PATCH /api/parents/{id}
     public function update(Request $request, ParentUser $parentUser)
     {
+        $this->authorize('update', $parentUser);
+
         $validated = $request->validate([
             'public_id' => 'sometimes',
             'full_name' => 'sometimes',
@@ -66,6 +75,8 @@ class ParentUserController extends Controller
     // DELETE /api/parents/{id}
     public function destroy(ParentUser $parentUser)
     {
+        $this->authorize('delete', $parentUser);
+
         $parentUser->delete();
 
         return response()->json(['message' => 'تم الحذف بنجاح']);

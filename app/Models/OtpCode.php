@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class OtpCode extends Model
 {
+    const UPDATED_AT = null;
+
     protected $table = 'otp_codes';
 
     protected $fillable = [

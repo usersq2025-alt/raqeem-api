@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Sanctum\HasApiTokens;
 
 class ParentUser extends Model
 {
+    use HasApiTokens;
+
     protected $table = 'parents';
 
     protected $fillable = [
@@ -17,6 +20,10 @@ class ParentUser extends Model
         'password_hash',
         'email_verified_at',
         'status',
+    ];
+
+    protected $hidden = [
+        'password_hash',
     ];
 
     protected $casts = [

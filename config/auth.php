@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\AdminUser;
+use App\Models\ParentUser;
 use App\Models\User;
 
 return [
@@ -42,6 +44,24 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // مصادقة مستقلة تمامًا عن Sanctum guard الافتراضي.
+        // نفس محرك sanctum، لكن provider مضبوط على AdminUser فقط -> Guard::hasValidProvider()
+        // يرفض أي token لا يخص AdminUser، فتوكن ولي أمر لا يعمل إطلاقًا على مسارات /api/admin/*.
+        'admin' => [
+            'driver' => 'sanctum',
+            'provider' => 'admins',
+        ],
+
+        // Guard مستقل حصريًا لمسارات ولي الأمر/الطالب (routes/api.php يستخدم auth:parent
+        // بدل auth:sanctum لهذه المجموعة). provider مضبوط على ParentUser فقط، فتوكن AdminUser
+        // يُرفض هنا بـ 401 من الـ Guard نفسه (hasValidProvider) وليس فقط عبر StudentPolicy.
+        // guard "sanctum" الافتراضي (الذي تسجّله حزمة Sanctum تلقائيًا بـ provider=null) لم يُعدَّل
+        // إطلاقًا ولم يعد أي route يستخدمه بالاسم بعد هذا التغيير.
+        'parent' => [
+            'driver' => 'sanctum',
+            'provider' => 'parents',
+        ],
     ],
 
     /*
@@ -65,6 +85,16 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => AdminUser::class,
+        ],
+
+        'parents' => [
+            'driver' => 'eloquent',
+            'model' => ParentUser::class,
         ],
 
         // 'users' => [
