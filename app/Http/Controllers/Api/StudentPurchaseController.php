@@ -3,11 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Student;
+use App\Models\StoreItem;
 use App\Models\StudentPurchase;
+use App\Services\StorePurchaseService;
 use Illuminate\Http\Request;
 
 class StudentPurchaseController extends Controller
 {
+    public function __construct(private StorePurchaseService $purchaseService)
+    {
+    }
+
     // GET /api/student-purchases
     public function index(Request $request)
     {
@@ -33,20 +40,22 @@ class StudentPurchaseController extends Controller
     }
 
     // POST /api/student-purchases
+    // C2: السعر يُقرأ دائمًا من store_items.price_points، لا يُقبل price_paid من العميل إطلاقًا
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'store_item_id' => 'sometimes',
-            'price_paid' => 'sometimes',
-            'purchased_at' => 'sometimes',
+            'student_id' => 'required|integer',
+            'store_item_id' => 'required|integer',
         ]);
 
-        $this->authorize('create', [StudentPurchase::class, $validated['student_id'] ?? null]);
+        $this->authorize('create', [StudentPurchase::class, $validated['student_id']]);
 
-        $studentPurchase = StudentPurchase::create($validated);
+        $student = Student::findOrFail($validated['student_id']);
+        $item = StoreItem::findOrFail($validated['store_item_id']);
 
-        return response()->json($studentPurchase, 201);
+        $purchase = $this->purchaseService->purchase($student, $item);
+
+        return response()->json($purchase, 201);
     }
 
     // PUT/PATCH /api/student-purchases/{id}
@@ -54,10 +63,8 @@ class StudentPurchaseController extends Controller
     {
         $this->authorize('update', $studentPurchase);
 
+        // price_paid وstudent_id وstore_item_id غير قابلة للتعديل بعد الإنشاء (تحافظ على سلامة السجل الذري)
         $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'store_item_id' => 'sometimes',
-            'price_paid' => 'sometimes',
             'purchased_at' => 'sometimes',
         ]);
 

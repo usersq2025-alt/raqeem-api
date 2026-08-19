@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\ExcelImportRowController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\LessonAttemptController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -67,6 +68,11 @@ Route::middleware('auth:parent')->group(function () {
     Route::apiResource('student-purchases', StudentPurchaseController::class);
     Route::apiResource('unit-completion-rewards', UnitCompletionRewardController::class);
     Route::apiResource('student-gifts-log', StudentGiftLogController::class);
+
+    // B5 + B6.1-B6.4 + B7 — مسارات دلالية لتشغيل الدرس (بدل CRUD عام على student-lesson-attempts/student-answers)
+    Route::post('/lessons/{lesson}/attempts/start', [LessonAttemptController::class, 'start']);
+    Route::post('/attempts/{attempt}/answer', [LessonAttemptController::class, 'answer']);
+    Route::post('/attempts/{attempt}/complete', [LessonAttemptController::class, 'complete']);
 });
 
 // مسارات الإدارة — guard مستقل تمامًا (admin)، توكن ولي الأمر لا يعمل هنا إطلاقًا
