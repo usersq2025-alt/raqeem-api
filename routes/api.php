@@ -36,6 +36,9 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\LessonAttemptController;
+use App\Http\Controllers\Api\StudentStreakController;
+use App\Http\Controllers\Api\ReviewStationController;
+use App\Http\Controllers\Api\ExcelImportProcessingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -58,22 +61,32 @@ Route::middleware('auth:parent')->group(function () {
     // قراءة فقط: كل الكتابة (بدء/إجابة/إتمام) تمر حصرًا عبر LessonAttemptController أدناه
     Route::apiResource('student-lesson-attempts', StudentLessonAttemptController::class)->only(['index', 'show']);
     Route::apiResource('student-answers', StudentAnswerController::class)->only(['index', 'show']);
-    Route::apiResource('review-station-sessions', ReviewStationSessionController::class);
-    Route::apiResource('review-station-questions', ReviewStationQuestionController::class);
-    Route::apiResource('daily-activity-log', DailyActivityLogController::class);
-    Route::apiResource('badges', BadgeController::class);
-    Route::apiResource('student-badges', StudentBadgeController::class);
+    // قراءة فقط لكل الجداول التالية من بداية بنائها الدلالي — الكتابة تمر حصرًا
+    // عبر endpoints دلالية (B8/B9/D6)، لا عبر CRUD عام (تعليمة عامة بالمرحلة 4)
+    Route::apiResource('review-station-sessions', ReviewStationSessionController::class)->only(['index', 'show']);
+    Route::apiResource('review-station-questions', ReviewStationQuestionController::class)->only(['index', 'show']);
+    Route::apiResource('daily-activity-log', DailyActivityLogController::class)->only(['index', 'show']);
+    Route::apiResource('badges', BadgeController::class)->only(['index', 'show']);
+    Route::apiResource('student-badges', StudentBadgeController::class)->only(['index', 'show']);
     Route::apiResource('motivational-phrases', MotivationalPhraseController::class);
     Route::apiResource('points-transactions', PointsTransactionController::class);
     Route::apiResource('store-items', StoreItemController::class);
     Route::apiResource('student-purchases', StudentPurchaseController::class);
+    // unit-completion-rewards يبقى CRUD عامًا (كتالوج إعداد تُديره لاحقًا الإدارة، يُقرأ فقط هنا ولا يُكتب إليه)
     Route::apiResource('unit-completion-rewards', UnitCompletionRewardController::class);
-    Route::apiResource('student-gifts-log', StudentGiftLogController::class);
+    // قراءة فقط: كل المنح تمر حصرًا عبر UnitGiftService (يُستدعى من LessonAttemptService::complete)
+    Route::apiResource('student-gifts-log', StudentGiftLogController::class)->only(['index', 'show']);
 
     // B5 + B6.1-B6.4 + B7 — مسارات دلالية لتشغيل الدرس (بدل CRUD عام على student-lesson-attempts/student-answers)
     Route::post('/lessons/{lesson}/attempts/start', [LessonAttemptController::class, 'start']);
     Route::post('/attempts/{attempt}/answer', [LessonAttemptController::class, 'answer']);
     Route::post('/attempts/{attempt}/complete', [LessonAttemptController::class, 'complete']);
+
+    // B9 — قراءة فقط: التحديث يحدث تلقائيًا داخل LessonAttemptService::complete
+    Route::get('/students/{student}/streak', [StudentStreakController::class, 'show']);
+
+    // B8.2 — تسليم إجابة داخل محطة المراجعة
+    Route::post('/review-sessions/{session}/answer', [ReviewStationController::class, 'answer']);
 });
 
 // مسارات الإدارة — guard مستقل تمامًا (admin)، توكن ولي الأمر لا يعمل هنا إطلاقًا
@@ -84,10 +97,16 @@ Route::prefix('admin')->group(function () {
     Route::middleware('auth:admin')->group(function () {
         Route::apiResource('admin-roles', AdminRoleController::class);
         Route::apiResource('admin-users', AdminUserController::class);
-        Route::apiResource('excel-imports', ExcelImportController::class);
-        Route::apiResource('excel-import-rows', ExcelImportRowController::class);
+        // قراءة فقط من البداية: الإنشاء/المعالجة/النشر تمر عبر endpoints دلالية (D6، مرحلة لاحقة)
+        Route::apiResource('excel-imports', ExcelImportController::class)->only(['index', 'show']);
+        Route::apiResource('excel-import-rows', ExcelImportRowController::class)->only(['index', 'show']);
         Route::apiResource('settings', SettingController::class);
         Route::apiResource('game-types', GameTypeController::class);
         Route::apiResource('questions', QuestionController::class);
+
+        // D6 — مسارات دلالية لاستيراد Excel (رفع -> معاينة/تصحيح -> تأكيد نشر صريح)
+        Route::post('/excel-imports/upload', [ExcelImportProcessingController::class, 'upload']);
+        Route::patch('/excel-import-rows/{row}/mapping', [ExcelImportProcessingController::class, 'updateMapping']);
+        Route::post('/excel-imports/{import}/confirm', [ExcelImportProcessingController::class, 'confirm']);
     });
 });

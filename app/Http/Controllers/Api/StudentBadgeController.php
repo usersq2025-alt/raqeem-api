@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 class StudentBadgeController extends Controller
 {
     // GET /api/student-badges
+    // القراءة فقط: كل المنح تمر حصرًا عبر StreakService (يُستدعى من LessonAttemptService::complete)
     public function index(Request $request)
     {
         $this->authorize('viewAny', StudentBadge::class);
@@ -30,47 +31,5 @@ class StudentBadgeController extends Controller
         $this->authorize('view', $studentBadge);
 
         return response()->json($studentBadge);
-    }
-
-    // POST /api/student-badges
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'badge_id' => 'sometimes',
-            'earned_at' => 'sometimes',
-        ]);
-
-        $this->authorize('create', [StudentBadge::class, $validated['student_id'] ?? null]);
-
-        $studentBadge = StudentBadge::create($validated);
-
-        return response()->json($studentBadge, 201);
-    }
-
-    // PUT/PATCH /api/student-badges/{id}
-    public function update(Request $request, StudentBadge $studentBadge)
-    {
-        $this->authorize('update', $studentBadge);
-
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'badge_id' => 'sometimes',
-            'earned_at' => 'sometimes',
-        ]);
-
-        $studentBadge->update($validated);
-
-        return response()->json($studentBadge);
-    }
-
-    // DELETE /api/student-badges/{id}
-    public function destroy(StudentBadge $studentBadge)
-    {
-        $this->authorize('delete', $studentBadge);
-
-        $studentBadge->delete();
-
-        return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 }

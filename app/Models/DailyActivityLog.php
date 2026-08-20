@@ -16,7 +16,7 @@ class DailyActivityLog extends Model
     ];
 
     protected $casts = [
-        'activity_date' => 'datetime',
+        'activity_date' => 'date',
     ];
 
     public function student()

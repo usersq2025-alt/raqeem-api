@@ -21,6 +21,14 @@ use Illuminate\Support\Facades\DB;
 
 class LessonAttemptService
 {
+    public function __construct(
+        private StreakService $streakService,
+        private ReviewStationService $reviewStationService,
+        private UnitGiftService $unitGiftService,
+        private UnitCompletionChecker $unitCompletionChecker,
+    ) {
+    }
+
     // B5 + B6.4 — بدء/استئناف محاولة درس
     public function startOrResume(Student $student, Lesson $lesson): StudentLessonAttempt
     {
@@ -171,6 +179,22 @@ class LessonAttemptService
                 ]);
 
                 Student::where('id', $attempt->student_id)->increment('points_balance', $pointsEarned);
+            }
+
+            // B9 — نفس المعاملة الذرّية، ليس استدعاءً منفصلًا
+            $student = $attempt->student()->first();
+            $this->streakService->recordActivityAndUpdateStreak($student);
+
+            // B8.1 — تجميع الأسئلة المُخطَأ بها بمحطة مراجعة، فقط بالمحاولة الأولى
+            // (لا معنى لـ"نقاط فُقدت" بمحاولة إعادة لعب أصلًا نقاطها 0 دائمًا)
+            if ($isFirstAttempt) {
+                $this->reviewStationService->collectWrongQuestionsFromAttempt($attempt);
+            }
+
+            // B8.4 — هدية نهاية الوحدة: تُفحص بعد كل إتمام درس، تُمنح فقط عند اكتمال كل دروس الوحدة لأول مرة
+            $unitId = $attempt->lesson->unit_id;
+            if ($this->unitCompletionChecker->hasCompletedUnit($student, $unitId)) {
+                $this->unitGiftService->grantIfEligible($student, $unitId);
             }
 
             return $attempt->fresh();

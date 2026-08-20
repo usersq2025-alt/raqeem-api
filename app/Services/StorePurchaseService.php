@@ -6,9 +6,7 @@ use App\Exceptions\Store\AlreadyPurchasedException;
 use App\Exceptions\Store\InsufficientBalanceException;
 use App\Exceptions\Store\ItemLockedException;
 use App\Exceptions\Store\ItemNotAvailableException;
-use App\Models\Lesson;
 use App\Models\Student;
-use App\Models\StudentLessonAttempt;
 use App\Models\StudentPurchase;
 use App\Models\StoreItem;
 use Illuminate\Database\QueryException;
@@ -16,6 +14,10 @@ use Illuminate\Support\Facades\DB;
 
 class StorePurchaseService
 {
+    public function __construct(private UnitCompletionChecker $unitCompletionChecker)
+    {
+    }
+
     // C2 — شراء ذرّي: خصم الرصيد + إنشاء سجل الشراء معًا، أو لا شيء عند الفشل
     public function purchase(Student $student, StoreItem $item): StudentPurchase
     {
@@ -67,18 +69,6 @@ class StorePurchaseService
             return false;
         }
 
-        $lessonIds = Lesson::where('unit_id', $item->unlock_unit_id)->pluck('id');
-
-        if ($lessonIds->isEmpty()) {
-            return false;
-        }
-
-        $completedCount = StudentLessonAttempt::where('student_id', $student->id)
-            ->whereIn('lesson_id', $lessonIds)
-            ->where('status', 'completed')
-            ->distinct('lesson_id')
-            ->count('lesson_id');
-
-        return $completedCount >= $lessonIds->count();
+        return $this->unitCompletionChecker->hasCompletedUnit($student, $item->unlock_unit_id);
     }
 }

@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 class ReviewStationSessionController extends Controller
 {
     // GET /api/review-station-sessions
+    // القراءة فقط: الجلسات تُنشأ تلقائيًا عند إتمام درس بأخطاء (B8)، والكتابة
+    // على الإجابات تمر عبر مسار دلالي منفصل (انظر B8 بمرحلة لاحقة)
     public function index(Request $request)
     {
         $this->authorize('viewAny', ReviewStationSession::class);
@@ -30,53 +32,5 @@ class ReviewStationSessionController extends Controller
         $this->authorize('view', $reviewStationSession);
 
         return response()->json($reviewStationSession);
-    }
-
-    // POST /api/review-station-sessions
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'unit_id' => 'sometimes',
-            'status' => 'sometimes',
-            'points_earned' => 'sometimes',
-            'started_at' => 'sometimes',
-            'completed_at' => 'sometimes',
-        ]);
-
-        $this->authorize('create', [ReviewStationSession::class, $validated['student_id'] ?? null]);
-
-        $reviewStationSession = ReviewStationSession::create($validated);
-
-        return response()->json($reviewStationSession, 201);
-    }
-
-    // PUT/PATCH /api/review-station-sessions/{id}
-    public function update(Request $request, ReviewStationSession $reviewStationSession)
-    {
-        $this->authorize('update', $reviewStationSession);
-
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'unit_id' => 'sometimes',
-            'status' => 'sometimes',
-            'points_earned' => 'sometimes',
-            'started_at' => 'sometimes',
-            'completed_at' => 'sometimes',
-        ]);
-
-        $reviewStationSession->update($validated);
-
-        return response()->json($reviewStationSession);
-    }
-
-    // DELETE /api/review-station-sessions/{id}
-    public function destroy(ReviewStationSession $reviewStationSession)
-    {
-        $this->authorize('delete', $reviewStationSession);
-
-        $reviewStationSession->delete();
-
-        return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\DailyActivityLog;
 use App\Models\ParentUser;
 use App\Models\PointsTransaction;
+use App\Models\ReviewStationQuestion;
 use App\Models\ReviewStationSession;
 use App\Models\Student;
 use App\Models\StudentAnswer;
@@ -15,6 +16,7 @@ use App\Models\StudentPurchase;
 use App\Policies\DailyActivityLogPolicy;
 use App\Policies\ParentUserPolicy;
 use App\Policies\PointsTransactionPolicy;
+use App\Policies\ReviewStationQuestionPolicy;
 use App\Policies\ReviewStationSessionPolicy;
 use App\Policies\StudentAnswerPolicy;
 use App\Policies\StudentBadgePolicy;
@@ -49,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(StudentBadge::class, StudentBadgePolicy::class);
         Gate::policy(DailyActivityLog::class, DailyActivityLogPolicy::class);
         Gate::policy(ReviewStationSession::class, ReviewStationSessionPolicy::class);
+        Gate::policy(ReviewStationQuestion::class, ReviewStationQuestionPolicy::class);
         Gate::policy(StudentGiftLog::class, StudentGiftLogPolicy::class);
     }
 }

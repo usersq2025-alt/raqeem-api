@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 class DailyActivityLogController extends Controller
 {
     // GET /api/daily-activity-log
+    // القراءة فقط: كل الكتابة تمر حصرًا عبر StreakService (يُستدعى من LessonAttemptService::complete)
     public function index(Request $request)
     {
         $this->authorize('viewAny', DailyActivityLog::class);
@@ -30,45 +31,5 @@ class DailyActivityLogController extends Controller
         $this->authorize('view', $dailyActivityLog);
 
         return response()->json($dailyActivityLog);
-    }
-
-    // POST /api/daily-activity-log
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'activity_date' => 'sometimes',
-        ]);
-
-        $this->authorize('create', [DailyActivityLog::class, $validated['student_id'] ?? null]);
-
-        $dailyActivityLog = DailyActivityLog::create($validated);
-
-        return response()->json($dailyActivityLog, 201);
-    }
-
-    // PUT/PATCH /api/daily-activity-log/{id}
-    public function update(Request $request, DailyActivityLog $dailyActivityLog)
-    {
-        $this->authorize('update', $dailyActivityLog);
-
-        $validated = $request->validate([
-            'student_id' => 'sometimes',
-            'activity_date' => 'sometimes',
-        ]);
-
-        $dailyActivityLog->update($validated);
-
-        return response()->json($dailyActivityLog);
-    }
-
-    // DELETE /api/daily-activity-log/{id}
-    public function destroy(DailyActivityLog $dailyActivityLog)
-    {
-        $this->authorize('delete', $dailyActivityLog);
-
-        $dailyActivityLog->delete();
-
-        return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 }

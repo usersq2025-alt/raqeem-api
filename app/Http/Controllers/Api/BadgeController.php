@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 class BadgeController extends Controller
 {
     // GET /api/badges
+    // القراءة فقط: كتالوج الشارات يُنشأ تلقائيًا (StreakService::awardEligibleBadges)
+    // من إعدادات config/streak_rules.php عند أول منح فعلي، لا عبر هذا المسار
     public function index(Request $request)
     {
         $query = Badge::query();
@@ -23,47 +25,5 @@ class BadgeController extends Controller
     public function show(Badge $badge)
     {
         return response()->json($badge);
-    }
-
-    // POST /api/badges
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'code' => 'sometimes',
-            'name_ar' => 'sometimes',
-            'name_en' => 'sometimes',
-            'threshold_type' => 'sometimes',
-            'threshold_value' => 'sometimes',
-            'icon_url' => 'sometimes',
-        ]);
-
-        $badge = Badge::create($validated);
-
-        return response()->json($badge, 201);
-    }
-
-    // PUT/PATCH /api/badges/{id}
-    public function update(Request $request, Badge $badge)
-    {
-        $validated = $request->validate([
-            'code' => 'sometimes',
-            'name_ar' => 'sometimes',
-            'name_en' => 'sometimes',
-            'threshold_type' => 'sometimes',
-            'threshold_value' => 'sometimes',
-            'icon_url' => 'sometimes',
-        ]);
-
-        $badge->update($validated);
-
-        return response()->json($badge);
-    }
-
-    // DELETE /api/badges/{id}
-    public function destroy(Badge $badge)
-    {
-        $badge->delete();
-
-        return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 }
