@@ -263,4 +263,99 @@ class LessonGameplayTest extends TestCase
         $this->assertSame(8, $student->points_balance); // لم يتغيّر، إعادة اللعب بلا نقاط
         $this->assertSame(1, \App\Models\PointsTransaction::where('student_id', $student->id)->count()); // سجل واحد فقط
     }
+
+    public function test_direct_write_routes_on_attempts_and_answers_are_closed(): void
+    {
+        [$student, $token] = $this->makeStudentWithToken();
+        $subject = Subject::create(['name_ar' => 'مادة', 'name_en' => 'Subject']);
+        $grade = Grade::first();
+        $unit = Unit::create(['subject_id' => $subject->id, 'grade_id' => $grade->id, 'title' => 'وحدة', 'sort_order' => 1, 'status' => 'published']);
+        $lesson = $this->makeLessonWithQuestions($unit->id, 1, 3);
+
+        $attempt = $this->withToken($token)
+            ->postJson("/api/lessons/{$lesson->id}/attempts/start", ['student_id' => $student->id])
+            ->json();
+
+        // محاولة PATCH مباشر لإكمال المحاولة دون إجابة أي سؤال -> يجب رفضها الآن (405)
+        $this->withToken($token)
+            ->patchJson("/api/student-lesson-attempts/{$attempt['id']}", ['status' => 'completed'])
+            ->assertStatus(405);
+
+        $this->withToken($token)
+            ->postJson('/api/student-lesson-attempts', ['student_id' => $student->id, 'lesson_id' => $lesson->id, 'status' => 'completed'])
+            ->assertStatus(405);
+
+        $this->withToken($token)
+            ->deleteJson("/api/student-lesson-attempts/{$attempt['id']}")
+            ->assertStatus(405);
+
+        $this->withToken($token)
+            ->postJson('/api/student-answers', ['attempt_id' => $attempt['id'], 'question_id' => 1, 'is_correct' => true])
+            ->assertStatus(405);
+
+        $this->withToken($token)
+            ->patchJson('/api/student-answers/1', ['is_correct' => true])
+            ->assertStatus(405);
+
+        // تأكيد أن حالة المحاولة لم تتأثر فعليًا بأي من هذه المحاولات
+        $fresh = StudentLessonAttempt::find($attempt['id']);
+        $this->assertSame('in_progress', $fresh->status);
+        $this->assertSame(0, $fresh->correct_count);
+    }
+
+    public function test_last_remaining_question_at_exact_depletion_ratio_still_allows_completion(): void
+    {
+        [$student, $token] = $this->makeStudentWithToken();
+        $subject = Subject::create(['name_ar' => 'مادة', 'name_en' => 'Subject']);
+        $grade = Grade::first();
+        $unit = Unit::create(['subject_id' => $subject->id, 'grade_id' => $grade->id, 'title' => 'وحدة', 'sort_order' => 1, 'status' => 'published']);
+        $lesson = $this->makeLessonWithQuestions($unit->id, 1, 10); // 10 أسئلة، عتبة الإفراغ 50% = 5 أخطاء بالضبط
+
+        $attempt = $this->withToken($token)
+            ->postJson("/api/lessons/{$lesson->id}/attempts/start", ['student_id' => $student->id])
+            ->json();
+
+        $questions = $lesson->questions()->orderBy('id')->get();
+
+        // 5 إجابات صحيحة أولًا
+        for ($i = 0; $i < 5; $i++) {
+            $this->withToken($token)
+                ->postJson("/api/attempts/{$attempt['id']}/answer", [
+                    'question_id' => $questions[$i]->id,
+                    'selected_answer' => ['selected_option_id' => 'a'],
+                ])
+                ->assertStatus(201);
+        }
+
+        // 4 إجابات خاطئة تالية (wrong_count=4 من 10 = 40%، دون العتبة بعد)
+        for ($i = 5; $i < 9; $i++) {
+            $this->withToken($token)
+                ->postJson("/api/attempts/{$attempt['id']}/answer", [
+                    'question_id' => $questions[$i]->id,
+                    'selected_answer' => ['selected_option_id' => 'b'],
+                ])
+                ->assertStatus(201)
+                ->assertJsonPath('attempt.status', 'in_progress');
+        }
+
+        // السؤال العاشر (الأخير المتبقي) خطأ أيضًا -> wrong_count=5 من 10 = 50% بالضبط،
+        // لكنه آخر سؤال بالدرس -> يجب ألا تُفرَغ البطارية
+        $last = $this->withToken($token)
+            ->postJson("/api/attempts/{$attempt['id']}/answer", [
+                'question_id' => $questions[9]->id,
+                'selected_answer' => ['selected_option_id' => 'b'],
+            ])
+            ->assertStatus(201)
+            ->json();
+
+        $this->assertSame(5, $last['attempt']['wrong_count']);
+        $this->assertSame('in_progress', $last['attempt']['status']);
+        $this->assertNull($last['attempt']['recharge_ends_at']);
+
+        // استدعاء /complete ينجح مباشرة بلا أي رفض
+        $this->withToken($token)
+            ->postJson("/api/attempts/{$attempt['id']}/complete")
+            ->assertStatus(200)
+            ->assertJsonPath('status', 'completed');
+    }
 }

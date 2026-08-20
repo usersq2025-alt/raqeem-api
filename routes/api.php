@@ -55,8 +55,9 @@ Route::middleware('auth:parent')->group(function () {
     Route::apiResource('skills', SkillController::class);
     Route::apiResource('games', GameController::class);
     Route::apiResource('game-questions', GameQuestionController::class);
-    Route::apiResource('student-lesson-attempts', StudentLessonAttemptController::class);
-    Route::apiResource('student-answers', StudentAnswerController::class);
+    // قراءة فقط: كل الكتابة (بدء/إجابة/إتمام) تمر حصرًا عبر LessonAttemptController أدناه
+    Route::apiResource('student-lesson-attempts', StudentLessonAttemptController::class)->only(['index', 'show']);
+    Route::apiResource('student-answers', StudentAnswerController::class)->only(['index', 'show']);
     Route::apiResource('review-station-sessions', ReviewStationSessionController::class);
     Route::apiResource('review-station-questions', ReviewStationQuestionController::class);
     Route::apiResource('daily-activity-log', DailyActivityLogController::class);

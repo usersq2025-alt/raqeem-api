@@ -96,8 +96,12 @@ class LessonAttemptService
 
             $totalQuestions = $this->totalQuestionsForLesson($attempt->lesson);
             $wrongRatio = $totalQuestions > 0 ? $attempt->wrong_count / $totalQuestions : 0;
+            $answeredCount = $attempt->correct_count + $attempt->wrong_count;
+            // إن كانت هذه آخر إجابة متبقية بالدرس، لا فائدة عملية من إفراغ البطارية
+            // وحجب الطالب 15 دقيقة قبل استدعاء /complete — لا نشاط ينتظره أصلًا
+            $isLastRemainingQuestion = $totalQuestions > 0 && $answeredCount >= $totalQuestions;
 
-            if ($wrongRatio >= config('game_rules.battery.depleted_at_wrong_ratio')) {
+            if ($wrongRatio >= config('game_rules.battery.depleted_at_wrong_ratio') && ! $isLastRemainingQuestion) {
                 $attempt->status = 'battery_depleted';
                 $attempt->recharge_ends_at = now()->addMinutes(config('game_rules.battery.recharge_minutes'));
             } else {
