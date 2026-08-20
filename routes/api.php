@@ -41,8 +41,19 @@ use App\Http\Controllers\Api\ReviewStationController;
 use App\Http\Controllers\Api\ExcelImportProcessingController;
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+// SEC-05: لم تكن مطبَّقة فعليًا قبل الآن رغم التوصية بتقرير المرحلة 1 — أُضيفت هنا أثناء العمل على A5-1/A5-2
+// ملاحظة حرجة: throttle:N,1 بلا "prefix" ثالث يُشارك عدّاد واحد فقط لكل IP بين كل
+// المسارات التي تستخدمه (Illuminate\Routing\Middleware\ThrottleRequests::resolveRequestSignature
+// يبني المفتاح من IP فقط دون اسم الـ route عند غياب الـ prefix) — لذلك كل throttle
+// بالملف (شاملة admin/login من مرحلة سابقة) صار له الآن prefix مميّز يمنع تسرّب الحد
+// بين مسار وآخر لنفس الزائر (اكتُشفت هذه أثناء اختبار A5-1/A5-2 الحي).
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1,verify-otp');
 Route::post('/login', [AuthController::class, 'login']);
+
+// A5-1 + A5-2: نفس منطق SEC-05 (throttle) — بريد الإدخال قد لا يكون مسجَّلًا، فالتحقق من التسجيل يحدث بالداخل فقط
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1,forgot-password');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1,reset-password');
+Route::post('/forgot-account-id', [AuthController::class, 'forgotAccountId'])->middleware('throttle:5,1,forgot-account-id');
 
 // مسارات ولي الأمر/الطالب — auth:parent (guard مستقل، provider مقيَّد بـ ParentUser فقط)
 Route::middleware('auth:parent')->group(function () {
@@ -92,7 +103,8 @@ Route::middleware('auth:parent')->group(function () {
 // مسارات الإدارة — guard مستقل تمامًا (admin)، توكن ولي الأمر لا يعمل هنا إطلاقًا
 Route::prefix('admin')->group(function () {
     // SEC-05-admin: نفس منطق حماية OTP من brute-force، مطبَّق هنا على تسجيل دخول الإدارة
-    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
+    // prefix مميّز (انظر الملاحظة الحرجة أعلى الملف) يمنع مشاركة هذا العدّاد مع مسارات throttle الأخرى
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1,admin-login');
 
     Route::middleware('auth:admin')->group(function () {
         Route::apiResource('admin-roles', AdminRoleController::class);
